@@ -1,0 +1,5 @@
+slackclient
+Flask
+psycopg2-binary
+alembic
+python-dotenv
