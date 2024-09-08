@@ -1,0 +1,14 @@
+#virtual enviaronment
+slackbot_env
+
+#python cache fiels
+__pycache__/
+*.pyc
+
+#enviroment variables
+.env 
+
+#IDE specific fiels
+.vscode/
+.idea/
+
