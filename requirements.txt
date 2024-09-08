@@ -1,4 +1,4 @@
-slackclient
+slack-bolt
 Flask
 psycopg2-binary
 alembic
