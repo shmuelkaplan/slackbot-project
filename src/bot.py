@@ -1,3 +1,4 @@
+import spacy
 from slack_bolt import App
 from slack_bolt.adapter.flask import SlackRequestHandler
 import os
@@ -5,9 +6,25 @@ from dotenv import load_dotenv
 
 # Load environment variables
 load_dotenv()
+nlp = spacy.load("en_core_web_sm")
+
 
 # Initialize the Slack app
 app = App(token=os.environ.get("SLACK_BOT_TOKEN"))
+
+@app.message("")
+def handle_message(message, say):
+    # Process the message text with spaCy
+    doc = nlp(message['text'])
+    
+    # Extract key information (this is a simple example)
+    subject = next((token.text for token in doc if token.dep_ == "nsubj"), None)
+    
+    # For now, let's just echo back some information
+    if subject:
+        say(f"You mentioned {subject}. I'll look that up for you.")
+    else:
+        say("I'm not sure I understood that. Could you rephrase?")
 
 
 @app.message("help")
