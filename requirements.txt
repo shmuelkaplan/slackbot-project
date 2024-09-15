@@ -1,5 +1,27 @@
-slack-bolt
-Flask
-psycopg2-binary
-alembic
-python-dotenv
+# Slack Bot Framework
+slack-bolt==1.18.0
+
+# Web Framework
+Flask==2.3.3
+
+# Database
+psycopg2-binary==2.9.7
+alembic==1.12.0
+
+# Environment Variables
+python-dotenv==1.0.0
+
+# AWS SDK
+boto3==1.28.57
+
+# HTTP Requests (for image downloads)
+requests==2.31.0
+
+# Logging (optional, for improved logging)
+ structlog==23.1.0
+
+# Testing (optional, for unit tests)
+ pytest==7.4.2
+
+# Type Checking (optional, for improved type hinting)
+ mypy==1.5.1

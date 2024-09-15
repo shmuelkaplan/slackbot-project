@@ -1,60 +1,53 @@
-import spacy
+#bot.py
+import json 
+import os
+import requests
 from slack_bolt import App
 from slack_bolt.adapter.flask import SlackRequestHandler
-import os
 from dotenv import load_dotenv
+from bedrock_handler import query_claude
+from typing import Optional
 
-# Load environment variables
 load_dotenv()
-nlp = spacy.load("en_core_web_sm")
 
-
-# Initialize the Slack app
 app = App(token=os.environ.get("SLACK_BOT_TOKEN"))
 
+def download_image(client, file: dict) -> Optional[str]:
+    image_url = file['url_private']
+    image_path = f"temp_image_{file['id']}.jpg"
+    response = client.web_client.api_call(
+        "files.sharedPublicURL",
+        file=file['id']
+    )
+    with open(image_path, 'wb') as f:
+        f.write(requests.get(image_url, headers={'Authorization': f"Bearer {client.token}"}).content)
+    return image_path
+
 @app.message("")
-def handle_message(message, say):
-    # Process the message text with spaCy
-    doc = nlp(message['text'])
+def handle_message(message, say, client):
+    text = message['text']
+    image_path = None
+
+    if 'files' in message and message['files']:
+        for file in message['files']:
+            if file['mimetype'].startswith('image/'):
+                image_path = download_image(client, file)
+                break  # Only process the first image
+
+    system_message = "You are a helpful AI assistant integrated into a Slack bot. Respond concisely and professionally."
+    user_message = f"User message: {text}"
     
-    # Extract key information (this is a simple example)
-    subject = next((token.text for token in doc if token.dep_ == "nsubj"), None)
-    
-    # For now, let's just echo back some information
-    if subject:
-        say(f"You mentioned {subject}. I'll look that up for you.")
-    else:
-        say("I'm not sure I understood that. Could you rephrase?")
+    messages = [
+        {"role": "system", "content": system_message},
+        {"role": "user", "content": user_message}
+    ]
+
+    response = query_claude(json.dumps(messages), image_path)
+
+    if image_path and os.path.exists(image_path):
+        os.remove(image_path)
+
+    say(response)
 
 
-@app.message("help")
-def message_help(message, say):
-    help_text = """
-    Here are the commands I understand:
-    • `hello`: I'll say hello back!
-    • `help`: I'll show this help message
-    • `echo [message]`: I'll repeat your message
-    """
-    say(help_text)
-
-@app.message("echo")
-def message_echo(message, say):
-    # Remove 'echo' from the beginning of the message
-    text = message['text'].replace('echo', '', 1).strip()
-    if text:
-        say(f"You said: {text}")
-    else:
-        say("You didn't provide anything to echo!")
-
-# Basic message handler
-@app.message("hello")
-def message_hello(message, say):
-    say(f"Hey there <@{message['user']}>!")
-
-# Event handler for app mentions
-@app.event("app_mention")
-def handle_app_mention(body, say):
-    say(f"You mentioned me in <#{body['event']['channel']}>. How can I help?")
-
-# Get the handler for Flask
 handler = SlackRequestHandler(app)

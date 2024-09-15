@@ -1,22 +1,37 @@
-from flask import Flask, request, jsonify  # Import Flask, request, and jsonify
-from bot import handler  # Import the SlackRequestHandler instance
+#server.py
+
+from flask import Flask, request, jsonify
+from bot import handler
 import logging
-flask_app = Flask(__name__)  # Create a new Flask web application instance
+import os
+from dotenv import load_dotenv
 
-logging.basicConfig(level=logging.INFO)
+load_dotenv()
 
-@flask_app.route("/slack/events", methods=["POST"])  # Define a route for POST requests to /slack/events
+flask_app = Flask(__name__)
+
+logging.basicConfig(level=logging.INFO, format='%(asctime)s - %(name)s - %(levelname)s - %(message)s')
+logger = logging.getLogger(__name__)
+
+@flask_app.route("/slack/events", methods=["POST"])
 def slack_events():
-    # Check if this is a challenge request
     try:
-        
         if "challenge" in request.json:
-            return jsonify({"challenge": request.json["challenge"]})  # Respond with the challenge token
-        # If not a challenge, process the event as before
-        return handler.handle(request)  # Process the request using the SlackRequestHandler
+            logger.info("Received Slack challenge request")
+            return jsonify({"challenge": request.json["challenge"]})
+        
+        logger.info("Received Slack event")
+        return handler.handle(request)
+    
     except Exception as e:
-        logging.error(f"An error occurred: {str(e)}")
+        logger.error(f"An error occurred: {str(e)}", exc_info=True)
         return jsonify({"error": "An internal error occurred"}), 500
 
-if __name__ == "__main__":  # Run the Flask app only if the script is executed directly
-    flask_app.run(port=3000)  # Start the Flask web server on port 3000
+@flask_app.route("/", methods=["GET"])
+def health_check():
+    return jsonify({"status": "healthy"}), 200
+
+if __name__ == "__main__":
+    port = int(os.environ.get("PORT", 3000))
+    debug = os.environ.get("DEBUG", "False").lower() == "true"
+    flask_app.run(host="0.0.0.0", port=port, debug=debug)
