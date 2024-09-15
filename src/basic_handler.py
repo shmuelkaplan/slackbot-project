@@ -1,7 +1,7 @@
 #basic_handler.py
 from slack_bolt import App
 from slack_bolt.context.say import Say
-from slack_bolt.context.body import BoltContext
+from slack_bolt.context import BoltContext
 
 def register_basic_handlers(app: App) -> None:
     """
