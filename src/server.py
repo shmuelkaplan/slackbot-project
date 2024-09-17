@@ -1,7 +1,7 @@
 #server.py
 
 from flask import Flask, request, jsonify
-from bot import handler
+from src.bot_handler import bot_handler
 import logging
 import os
 from dotenv import load_dotenv
@@ -21,7 +21,7 @@ def slack_events():
             return jsonify({"challenge": request.json["challenge"]})
         
         logger.info("Received Slack event")
-        return handler.handle(request)
+        return bot_handler.handle(request)
     
     except Exception as e:
         logger.error(f"An error occurred: {str(e)}", exc_info=True)

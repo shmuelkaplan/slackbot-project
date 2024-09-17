@@ -99,4 +99,4 @@ def handle_message(message, say, client):
         if image_path and os.path.exists(image_path):
             os.remove(image_path)
             
-handler = SlackRequestHandler(app)
+bot_handler = SlackRequestHandler(app)
