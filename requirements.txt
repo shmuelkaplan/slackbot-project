@@ -1,3 +1,5 @@
+#requierments.txt 
+
 # Slack Bot Framework
 slack-bolt==1.18.0
 

@@ -22,7 +22,7 @@ def test_bedrock_connection():
 
         # Invoke the model
         response = bedrock.invoke_model(
-            modelId="anthropic.claude-3-sonnet-20240229-v1:0",
+            modelId="eu.anthropic.claude-3-5-sonnet-20240620-v1:0",
             body=body,
             contentType="application/json",
             accept="application/json"
