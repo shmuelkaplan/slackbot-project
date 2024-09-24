@@ -2,6 +2,7 @@
 
 import sqlite3
 #makore
+#fixination
 def create_table(conn):
     try:
         c = conn.cursor()
