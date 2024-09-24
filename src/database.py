@@ -1,7 +1,7 @@
 #database.py
 
 import sqlite3
-
+#makore
 def create_table(conn):
     try:
         c = conn.cursor()
