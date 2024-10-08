@@ -1,10 +1,14 @@
 #server.py
-
+import sys
 from flask import Flask, request, jsonify
-from src.bot_handler import bot_handler
+from bot_handler import bot_handler
 import logging
 import os
 from dotenv import load_dotenv
+from assume_role import assume_role
+
+# Add the src directory to the Python path
+sys.path.append(os.path.abspath(os.path.join(os.path.dirname(__file__), '..', 'src')))
 
 load_dotenv()
 
@@ -30,6 +34,8 @@ def slack_events():
 @flask_app.route("/", methods=["GET"])
 def health_check():
     return jsonify({"status": "healthy"}), 200
+
+assume_role()
 
 if __name__ == "__main__":
     port = int(os.environ.get("PORT", 3000))
