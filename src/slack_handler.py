@@ -1,31 +1,25 @@
-#bot_handler.py
-import json
+# slack_handler.py
+import os
 import logging
 from slack_bolt import App
-from slack_bolt.adapter.flask import SlackRequestHandler
-from bedrock_handler import query_claude
+from slack_bolt.adapter.socket_mode import SocketModeHandler
 from bedrock_kb_handler import query_bedrock_kb
-import os
+from bedrock_handler import query_claude
+import json
 
-logging.basicConfig(level=logging.INFO, format='%(asctime)s - %(name)s - %(levelname)s - %(message)s')
 logger = logging.getLogger(__name__)
 
-class BotHandler:
-    def __init__(self, slack_bot_token, slack_signing_secret):
-        logger.info("Initializing BotHandler")
-        self.app = App(token=slack_bot_token, signing_secret=slack_signing_secret)
-        self.handler = SlackRequestHandler(self.app)
+class SlackHandler:
+    def __init__(self, slack_bot_token, slack_app_token):
+        self.app = App(token=slack_bot_token)
+        self.socket_mode_handler = SocketModeHandler(self.app, slack_app_token)
         self.aws_session = None
         self.setup_listeners()
-        logger.info("BotHandler initialized successfully")
 
     def set_aws_session(self, session):
-        logger.info("Setting AWS session")
         self.aws_session = session
 
     def setup_listeners(self):
-        logger.info("Setting up Slack event listeners")
-
         @self.app.event("app_mention")
         def handle_app_mention(event, say):
             self.handle_message(event, say)
@@ -38,16 +32,15 @@ class BotHandler:
         try:
             text = event['text']
             logger.info(f"Received message: {text}")
-            
+
             if not self.aws_session:
                 logger.error("AWS session not set")
                 say("I'm sorry, I'm not properly configured to answer questions at the moment.")
                 return
 
-            logger.info("Querying Bedrock knowledge base")
             kb_response, valid = query_bedrock_kb(self.aws_session, text)
             
-            if not valid or not kb_response.strip():
+            if not valid or not kb_response.strip() or kb_response == "Sorry, I am unable to assist you with this request.":
                 logger.info("No valid response from knowledge base, falling back to Claude")
                 system_message = "You are a helpful AI assistant integrated into a Slack bot. Respond concisely and professionally."
                 user_message = f"User message: {text}"
@@ -55,7 +48,6 @@ class BotHandler:
                     {"role": "system", "content": system_message},
                     {"role": "user", "content": user_message}
                 ]
-
                 response = query_claude(self.aws_session, json.dumps(messages))
                 logger.info(f"Claude response: {response}")
                 say(response)
@@ -67,9 +59,13 @@ class BotHandler:
             logger.error(f"Error in handle_message: {str(e)}", exc_info=True)
             say("I'm sorry, I encountered an error while processing your message.")
 
-    def get_handler(self):
-        return self.handler
-
+    def start(self):
+        try:
+            logger.info("Starting Socket Mode handler")
+            self.socket_mode_handler.start()
+        except Exception as e:
+            logger.error(f"Failed to start Socket Mode handler: {str(e)}", exc_info=True)
+        raise
     def test_bedrock_access(self):
         if not self.aws_session:
             logger.error("AWS session not set")
@@ -81,7 +77,7 @@ class BotHandler:
             
             response = client.retrieve_and_generate(
                 input={
-                    'text': 'What are the office hours?'  # Use a query that's likely to be in your KB
+                    'text': 'Test query'
                 },
                 retrieveAndGenerateConfiguration={
                     'type': 'KNOWLEDGE_BASE',
