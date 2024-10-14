@@ -1,50 +1,34 @@
 # bedrock_handler.py
 
-import boto3
 import json
-import os
 import logging
 from botocore.exceptions import ClientError
-from dotenv import load_dotenv
-
-load_dotenv()
 
 logging.basicConfig(level=logging.INFO, format='%(asctime)s - %(name)s - %(levelname)s - %(message)s')
 logger = logging.getLogger(__name__)
 
-def get_bedrock_client():
+def get_bedrock_client(session):
+    """
+    Creates and returns a Bedrock runtime client using the provided session.
+
+    :param session: A boto3 session with assumed role credentials
+    :return: A Bedrock runtime client or None if an error occurred
+    """
     try:
-        return boto3.client(
-            service_name='bedrock-runtime',
-            region_name=os.environ.get("AWS_DEFAULT_REGION", "us-east-1"),
-            # We don't need to explicitly set the AWS access key, secret, and session
-            # token as environment variables because we're using the assume_role.py
-            # script to set them before running this script. This script is intended
-            # to be run locally with the same permissions as the deployed version,
-            # so we can use the AWS Security Token Service (STS) to assume the IAM
-            
-            # role specified in the role_arn variable and set the corresponding AWS
-            # access key, secret, and session token as environment variables.
-        )
+        return session.client('bedrock-runtime')
     except Exception as e:
         logger.error(f"Error creating Bedrock client: {str(e)}", exc_info=True)
         return None
 
-bedrock = get_bedrock_client()
-
-def query_claude(messages: str) -> str:
+def query_claude(session, messages: str) -> str:
     """
-    Queries the Claude AI model with the given list of messages and returns the response as a string.
+    Queries the Claude AI model with the given list of messages using the provided session.
 
-    The input messages should be a JSON-formatted string containing a list of message objects, each with the following keys:
-
-    - role (string): The role of the message sender (either 'user', 'assistant', or 'system')
-    - content (string): The content of the message
-
-    The function returns the response from the Claude AI model as a string, or an error message if an error occurs.
-
-    The function also logs an error if the Bedrock Agent Runtime client is not initialized.
+    :param session: A boto3 session with assumed role credentials
+    :param messages: JSON-formatted string of messages
+    :return: Response from the Claude AI model or an error message
     """
+    bedrock = get_bedrock_client(session)
     if not bedrock:
         logger.error("Bedrock client is not initialized")
         return "Error: Unable to connect to AWS Bedrock. Please check your credentials and try again."
@@ -52,12 +36,10 @@ def query_claude(messages: str) -> str:
     try:
         parsed_messages = json.loads(messages)
         
-        # Convert 'system' role to 'user' and prepend it to the user's message
         if parsed_messages[0]['role'] == 'system':
             system_content = parsed_messages.pop(0)['content']
             parsed_messages[0]['content'] = f"{system_content}\n\nUser: {parsed_messages[0]['content']}"
         
-        # Ensure all messages have 'role' set to 'user' or 'assistant'
         for msg in parsed_messages:
             if msg['role'] not in ['user', 'assistant']:
                 msg['role'] = 'user'
