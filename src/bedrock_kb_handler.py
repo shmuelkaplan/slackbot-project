@@ -16,6 +16,7 @@ def get_bedrock_agent_runtime_client(session):
     """
     try:
         return session.client('bedrock-agent-runtime')
+        
     except Exception as e:
         logger.error(f"Error creating Bedrock Agent Runtime client: {str(e)}", exc_info=True)
         return None
@@ -81,3 +82,45 @@ def get_kb_info(session):
     except Exception as e:
         logger.error(f"Error retrieving KB info: {str(e)}", exc_info=True)
         return f"Error retrieving KB info: {str(e)}"
+    
+def save_answer_to_s3(question, answer, session):
+    try:
+        s3_client = session.client('s3')
+        bucket_name = os.getenv('S3_BUCKET_NAME')
+        knowledge_base_key = os.getenv('S3_KB_FILE_KEY')
+
+        # Retrieve the existing knowledge base from S3
+        response = s3_client.get_object(Bucket=bucket_name, Key=knowledge_base_key)
+        knowledge_base = json.loads(response['Body'].read().decode('utf-8'))
+
+        # Add the new question and answer
+        knowledge_base.append({"question": question, "answer": answer})
+
+        # Save the updated knowledge base back to S3
+        s3_client.put_object(
+            Bucket=bucket_name,
+            Key=knowledge_base_key,
+            Body=json.dumps(knowledge_base),
+            ContentType='application/json'
+        )
+        logger.info(f"Successfully added question and answer to S3: {question} | {answer}")
+    except Exception as e:
+        logger.error(f"Failed to save answer to S3: {str(e)}", exc_info=True)
+        raise
+
+# def sync_knowledge_base(session):
+    
+#     try:
+#         client = session.client('bedrock-agent')
+#         knowledge_base_id = os.getenv('BEDROCK_KB_ID')
+
+#         # Trigger sync
+#         response = client.update_agent_knowledge_base(
+#             agentId=knowledge_base_id, 
+
+#         )
+#         logger.info(f"Knowledge base sync triggered successfully: {response}")
+#         return True
+#     except Exception as e:
+#         logger.error(f"Failed to sync knowledge base: {str(e)}", exc_info=True)
+#         return False
