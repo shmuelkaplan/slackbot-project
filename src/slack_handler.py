@@ -132,7 +132,7 @@ class SlackHandler:
             #query the knowledge base
             kb_response, valid = query_bedrock_kb(self.aws_session, text)
             logger.info(f"Knowledge base response: {kb_response}")
-            if not valid or not kb_response.strip() or kb_response == "Sorry, I am unable to assist you with this request." or "I'm sorry" in kb_response or "I apologize" in kb_response:
+            if not valid or not kb_response.strip() or kb_response == "Sorry, I am unable to assist you with this request.":
                 logger.info("No valid response from knowledge base, notifying HR")
                 self.notify_hr_with_question(text, say)
             else:
@@ -167,8 +167,6 @@ class SlackHandler:
                 logger.error(f"Failed to send message to HR channel: {str(e)}", exc_info=True)
                 say("I'm sorry, I encountered an error while trying to notify HR. Please contact support if the issue persists.")
 
-            # Notify the user
-            say("I'm not sure about that, but I've sent your question to HR. They'll respond soon!")
 
         except Exception as e:
             logger.error(f"Unexpected error in notify_hr_with_question: {str(e)}", exc_info=True)
