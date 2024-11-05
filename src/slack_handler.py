@@ -134,7 +134,7 @@ class SlackHandler:
             logger.info(f"Knowledge base response: {kb_response}")
             if not valid or not kb_response.strip() or kb_response == "Sorry, I am unable to assist you with this request." or "I'm sorry" in kb_response or "I apologize" in kb_response:
                 logger.info("No valid response from knowledge base, notifying HR")
-                self.notify_hr_with_question(text, event.get("channel"), say)
+                self.notify_hr_with_question(text, say)
             else:
                 logger.info(f"Responding with knowledge base answer: {kb_response}")
                 say(kb_response)

@@ -3,6 +3,8 @@ import json
 import os
 import logging
 from typing import Tuple
+import uuid
+from botocore.exceptions import BotoCoreError, ClientError
 
 logging.basicConfig(level=logging.INFO, format='%(asctime)s - %(name)s - %(levelname)s - %(message)s')
 logger = logging.getLogger(__name__)
@@ -108,19 +110,40 @@ def save_answer_to_s3(question, answer, session):
         logger.error(f"Failed to save answer to S3: {str(e)}", exc_info=True)
         raise
 
-# def sync_knowledge_base(session):
-    
-#     try:
-#         client = session.client('bedrock-agent')
-#         knowledge_base_id = os.getenv('BEDROCK_KB_ID')
+def sync_knowledge_base(session):
+    """
+    Synchronizes the Amazon Bedrock knowledge base with the specified data source.
 
-#         # Trigger sync
-#         response = client.update_agent_knowledge_base(
-#             agentId=knowledge_base_id, 
+    :param session: A boto3 session with the necessary AWS credentials and configuration.
+    :return: True if the sync is initiated successfully, False otherwise.
+    """
+    try:
+        # Initialize the bedrock-agent client
+        client = session.client('bedrock-agent')
 
-#         )
-#         logger.info(f"Knowledge base sync triggered successfully: {response}")
-#         return True
-#     except Exception as e:
-#         logger.error(f"Failed to sync knowledge base: {str(e)}", exc_info=True)
-#         return False
+        # Retrieve environment variables
+        knowledge_base_id = os.getenv('BEDROCK_KB_ID')
+        data_source_id = os.getenv('BEDROCK_DATA_SOURCE_ID')
+
+        if not knowledge_base_id or not data_source_id:
+            logger.error("Environment variables 'BEDROCK_KB_ID' or 'BEDROCK_DATA_SOURCE_ID' are not set.")
+            return False
+
+        # Generate a unique client token for idempotency
+        client_token = str(uuid.uuid4())  # Generates a 36-character UUID
+
+        # Start the ingestion job
+        response = client.start_ingestion_job(
+            clientToken=client_token,
+            dataSourceId=data_source_id,
+            description='Synchronizing knowledge base with S3 data source',
+            knowledgeBaseId=knowledge_base_id
+        )
+
+        ingestion_job_id = response.get('ingestionJob', {}).get('ingestionJobId', 'N/A')
+        logger.info(f"Knowledge base sync triggered successfully. Ingestion Job ID: {ingestion_job_id}")
+        return True
+
+    except (BotoCoreError, ClientError) as error:
+        logger.error(f"Failed to sync knowledge base: {error}", exc_info=True)
+        return False
