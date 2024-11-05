@@ -130,11 +130,11 @@ def sync_knowledge_base(session):
             return False
 
         # Generate a unique client token for idempotency
-        client_token = str(uuid.uuid4())  # Generates a 36-character UUID
+        # client_token = str(uuid.uuid4())  # Generates a 36-character UUID
 
         # Start the ingestion job
         response = client.start_ingestion_job(
-            clientToken=client_token,
+            # clientToken=client_token,
             dataSourceId=data_source_id,
             description='Synchronizing knowledge base with S3 data source',
             knowledgeBaseId=knowledge_base_id
